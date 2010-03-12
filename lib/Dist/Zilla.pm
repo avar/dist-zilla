@@ -177,10 +177,17 @@ has main_module => (
     } else {
        $guessing = 'guessing '; # We're having to guess
 
-       (my $guess = $self->name) =~ s{-}{/}g;
-       $guess = "lib/$guess.pm";
+       (my $module = $self->name) =~ s{-}{/}g;
+       (my $lastbit = $module) =~ s{.*/}{};
+       my $guess = qr[ ^ (?:
+         (?# Support lib/Some/Module.pm )
+         lib/\Q$module\E\.pm
+         |
+         (?# Support lib/Module.pm, common in XS dists and old CPAN dists )
+         \Q$lastbit\E\.pm
+       ) $]x;
 
-       $file = $self->files->grep(sub{ $_->name eq $guess })->head
+       $file = $self->files->grep(sub{ $_->name =~ $guess })->head
            ||  $self->files
              ->grep(sub { $_->name =~ m{\.pm\z} and $_->name =~ m{\Alib/} })
              ->sort(sub { length $_[0]->name <=> length $_[1]->name })
